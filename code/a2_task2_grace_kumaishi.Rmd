@@ -1,0 +1,104 @@
+---
+title: "Assignment 2 Task 2"
+author: "Grace Kumaishi"
+date: "1/31/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(here)
+library(lubridate)
+```
+
+```{r}
+# Read in the data:
+#palmetto <- read_csv(here("data", "palmetto.csv"))
+
+palmetto <- read_csv(here("data/palmetto.csv"), 
+                     col_types = cols(.default = "c")) %>% # defaults all columns to character
+  mutate(height = as.numeric(height)) %>% # mutate so that height is classified as numeric
+  mutate(length = as.numeric(length)) %>% 
+  mutate(width = as.numeric(width)) %>% 
+  mutate(green_lvs = as.numeric(green_lvs))
+```
+
+## Data visualization:
+
+```{r}
+# Canopy length vs. canopy width
+#ggplot(data = palmetto, aes(x = length, y = width, color = species)) +
+  #geom_point() +
+  #facet_wrap(~species) +
+  #theme_minimal()
+
+#ggplot(data = palmetto, aes(x = green_lvs, y = height, color = species)) +
+  #geom_point(alpha = .3) +
+  #theme_minimal()
+
+#ggplot(data = palmetto, aes(x = length, y = height, color = species)) +
+  #geom_point() +
+  #facet_wrap(~species) +
+  #theme_minimal()
+
+ggplot(data = one_or_two, aes(x = species, y = green_lvs)) +
+  geom_jitter(aes(color = species))
+
+ggplot(data = one_or_two, aes(x = species, y = height)) +
+  geom_jitter(aes(color = species))
+
+ggplot(data = one_or_two, aes(x = species, y = length)) +
+  geom_jitter(aes(color = species))
+
+ggplot(data = one_or_two, aes(x = species, y = width)) +
+  geom_jitter(aes(color = species))
+```
+
+## Binary logistic regression:
+
+```{r}
+# Make a subset of palmetto to simplify dataset
+one_or_two <- palmetto %>% 
+  select(species, height:green_lvs) %>% 
+  mutate(species = as.factor(species))
+
+levels(one_or_two$species)
+
+# Create blr
+palmetto_blr <- glm(species ~ height + length + width + green_lvs, 
+                            data = one_or_two, 
+                            family = "binomial")
+```
+
+```{r}
+# Look at the model:
+palmetto_blr
+
+summary(palmetto_blr)
+
+# Get a tidy version w/ broom: 
+blr_tidy <- broom::tidy(palmetto_blr)
+```
+
+```{r}
+# Convert log odds to a probability
+blr_fitted <- palmetto_blr %>% 
+  broom::augment(type.predict = "response")
+```
+
+```{r}
+# Quick viz with green leaves
+ggplot(data = blr_fitted, aes(x = green_lvs, y = .fitted)) +
+  geom_point(aes(color = species)) +
+  geom_smooth(aes(color = species), se = FALSE) +
+  labs(x = "Green leaves",
+       y = "Probability of outcome 2")
+```
+
+
+## Finalized table:
+
+

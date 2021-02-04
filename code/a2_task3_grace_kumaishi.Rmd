@@ -1,0 +1,144 @@
+---
+title: "Assignment 2 Task 3"
+author: "Grace Kumaishi"
+date: "1/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytuesdayR)
+library(ggforce)
+```
+
+Read in data:
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2021-01-26')
+plastics <- tuesdata$plastics
+```
+
+```{r}
+# Wrangle
+# Analyze companies from USA
+usa_2020 <- plastics %>% 
+  filter(country == "United States of America", year == 2020,
+         parent_company != "null",
+         parent_company != "Unbranded") %>% 
+  arrange(desc(grand_total)) %>% 
+  slice_head(n = 5)
+
+company_names <- unique(usa_2020$parent_company)
+
+# Factor parent_company and select columns to pivot_longer
+usa_2020 <- usa_2020 %>% 
+  mutate(parent_company = factor(parent_company,
+                                 levels = company_names)) %>%
+  select(-year, -country, -empty, -o, -grand_total, -num_events, -volunteers)
+
+# pivot_longer to be able to gather_set_data, required to format for Sankey plot
+
+longer <- pivot_longer(usa_2020,
+                       cols = 2:7,
+                       names_to = "plastic_type",
+                       values_to = "n") %>% 
+  arrange(desc(n))
+
+# gather_set_data to obtain x, y, and id for geom_parallel
+gather_longer <- gather_set_data(data = longer, x = 1:2)
+```
+
+```{r}
+# Visualization
+
+plot <- ggplot(gather_longer, aes(x = x, id = id, split = y, value = n)) +
+  geom_parallel_sets(aes(fill = parent_company), alpha = 0.6, axis.width = 0.1) +
+  geom_parallel_sets_axes(axis.width = 0.1) + 
+  #geom_parallel_sets_labels(angle = 0, color = "white", size = 4) + # automatic labeling
+  labs(title = "Trashiest Brands of 2020",
+       subtitle = "Top 5 polluting brands in the United States in 2020 \n collected during Break Free from Plastic cleanups",
+       x = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5, size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = .5),
+        legend.position = "none",
+        plot.margin = unit(c(1,0,.5,-.5), "cm")) +
+  scale_x_discrete(expand = c(-.24, .38)) +
+  scale_fill_manual(
+    values = c(
+      "The Kroger Company" = "blue4",
+      "Pepsico" = "cornflowerblue",
+      "The Coca-Cola Company" = "brown3",
+      "Nestle" = "gold",
+      "Starbucks" = "forestgreen")) +
+  annotate(
+    geom = "text",
+    x = 1.21,
+    y = 1515,
+    label = "Kroger Company",
+    size = 5) +
+  annotate(
+    geom = "text",
+    x = 1.14,
+    y = 950,
+    label = "PepsiCo",
+    size = 5) +
+  annotate(
+    geom = "text",
+    x = 1.15,
+    y = 600,
+    label = "Coca-Cola",
+    size = 4.5) +
+  annotate(
+    geom = "text",
+    x = 1.12,
+    y = 300,
+    label = "Nestle",
+    size = 5) +
+  annotate(
+    geom = "text",
+    x = 1.13,
+    y = 70,
+    label = "Starbucks",
+    size = 4) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = 1575,
+    label = "PP",
+    size = 5) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = 850,
+    label = "PET",
+    size = 5) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = 400,
+    label = "HDPE",
+    size = 4) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = 245,
+    label = "LDPE",
+    size = 4) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = 100,
+    label = "PS",
+    size = 4) +
+  annotate(
+    geom = "text",
+    x = 2.1,
+    y = -5,
+    label = "PVC",
+    size = 3)
+
+plot
+```
+
+
