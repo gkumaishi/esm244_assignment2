@@ -1,5 +1,5 @@
 ---
-title: "Assignment 2 Task 2"
+title: "Palmetto binary logistic regression"
 author: "Grace Kumaishi"
 date: "1/31/2021"
 output: 
@@ -49,7 +49,9 @@ ggplot(data = palmetto, aes(x = green_lvs, y = height, color = species_name)) +
   theme_minimal() 
 ```
 
-**Figure 1:** 
+**Figure 1:** Scatterplot showing the relationship between green leaves counted and height (cm) of two palmetto species: *Sabal etonia* (shown here in green) and *Serenoa repens* (shown here in orange). (Data: Abrahamson, W.G. 2019).
+
+**Takeaways:** *Serenoa repens* appears to have a larger range of green leaves counted when compared to *Sabal etonia*. There appears to be a positive relationship between height and green leaf count.
 
 ```{r, fig.align = "center"}
 ggplot() +
@@ -69,7 +71,9 @@ ggplot() +
   theme(legend.position = "none")
 ```
 
-**Figure 2:**
+**Figure 2:** A jitterplot overlaid with a boxplot to explore differences between the green leaves count of two palmetto species: *Sabal etonia* (shown here in green) and *Serenoa repens* (shown here in orange). Box endpoints indicate the 25^th^ and 75^th^ percentile values. The median value is indicated by a black line and the outliers are shown with black dots. (Data: Abrahamson, W.G. 2019).
+
+**Takeaways:** This figure shows the difference in green leaf count between the two species. Again, *Serenoa repens* is shown to have a wider range of counts. *Sabal etonia* has consistently fewer leaves on average. 
 
 ```{r, fig.align = "center"}
 ggplot(data = palmetto, aes(x = length, y = width, color = species_name)) +
@@ -82,7 +86,9 @@ ggplot(data = palmetto, aes(x = length, y = width, color = species_name)) +
   theme(legend.position = "none")
 ```
 
-**Figure 3:**
+**Figure 3:** Scatterplot showing the relationship between canopy width (cm) and canopy length (cm) of two palmetto species: *Sabal etonia* (shown here in green) and *Serenoa repens* (shown here in orange). Plots are faceted due to similarity of data points. (Data: Abrahamson, W.G. 2019).
+
+**Takeaways:** There does not appear to be much difference between the two species when comparing canopy length and canopy width. Both seem to follow a positive, perhaps linear relationship.
 
 ### Binary logistic regression:
 
@@ -117,14 +123,14 @@ quick_viz <- ggplot(data = blr_fitted, aes(x = green_lvs, y = .fitted)) +
             #y.label = "Probability of '2'")
 ```
 
-**Table 1:**
+**Table 1:** Output of binary logistic regression using plant height, canopy length, canopy width, and green leaves as predictor variables to evaluate the probability of a plant being either *Serenoa repeons* or *Sabal etonia*. (Data: Abrahamson, W.G. 2019).
 
 <div align="center">
 ```{r, results = "asis"}
 stargazer(palmetto_blr, type = "html",
-          title = "Binary Logistic Regression",
-          dep.var.labels = "Species 2 (Sabal entonia)",
-          covariate.labels = c("Height", "Length", "Width", "Green leaves"))
+          title = "Binary Logistic Regression", # add title
+          dep.var.labels = "Species 2 (Sabal entonia)", # add dependent variable
+          covariate.labels = c("Height", "Length", "Width", "Green leaves")) # add covariate labels
 ```
 </div>
 
@@ -134,31 +140,30 @@ stargazer(palmetto_blr, type = "html",
 blr_fitted_new <- blr_fitted %>% 
   select(species, .fitted) %>% 
   mutate(predicted_sp = case_when( # calculate predicted outcome with a cutoff at 50%
-    .fitted >= .5 ~ "2", 
-    .fitted < .5 ~ "1")) %>% 
-  mutate(classification = case_when(
-    species == predicted_sp ~ "Correct",
+    .fitted >= .5 ~ "2", # species 2 predicted at probabilities above 50%
+    .fitted < .5 ~ "1")) %>%# species 1 predicted at probabilities below 50%
+  mutate(classification = case_when( # create new column of correct and incorrect predictions
+    species == predicted_sp ~ "Correct", 
     species != predicted_sp ~ "Incorrect")) %>% 
-  mutate(species = as.numeric(species)) %>% 
   group_by(species, classification) %>% 
-  count(classification)
+  count(classification) # count species correctly and incorrectly identified
 
 blr_fitted_table <- blr_fitted_new %>% 
-  pivot_wider(names_from = classification,
+  pivot_wider(names_from = classification, # pivot table
               values_from = n) %>% 
   mutate(species = case_when(
-    species == 1 ~ "Serenoa repens",
+    species == 1 ~ "Serenoa repens", # add species names 
     species == 2 ~ "Sabal entonia")) %>% 
-  column_to_rownames(var = "species") 
+  column_to_rownames(var = "species") # shift column so that species names are part of column 1
 
-blr_fitted_table["Percent Correct"] = blr_fitted_table["Correct"] / (blr_fitted_table["Incorrect"] + blr_fitted_table["Correct"]) * 100 
+blr_fitted_table["Percent Correct"] = blr_fitted_table["Correct"] / (blr_fitted_table["Incorrect"] + blr_fitted_table["Correct"]) * 100 # add percentages in the last column of the table!
 ```
 
-**Table 2:**
+**Table 2:** Counts of "correct" and "incorrect" classifications of each species (*Serenoa repens* and *Sabal entonia*) using a binary logistic regression model with a 50% cutoff (i.e. anything over a probability of 50% is predicted as *Sabal entonia*). Percent of correct predictions is included. (Data: Abrahamson, W.G. 2019).
 
 ```{r}
-kable(blr_fitted_table, digits = 2) %>% 
-  kable_styling(full_width = FALSE) %>% 
+kable(blr_fitted_table, digits = 2) %>% # round to two digits
+  kable_styling(full_width = FALSE) %>% # remove full width default
   column_spec(1, italic = TRUE) # Italicize first column only
 ```
 
